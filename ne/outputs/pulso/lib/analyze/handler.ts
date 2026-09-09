@@ -61,6 +61,22 @@ export async function handleAnalyzeRequest(
   const now = dependencies.now?.() ?? new Date();
   const fetchedAt = now.toISOString();
 
+  // Cada análisis es una inferencia de varios segundos: se limita antes de
+  // leer el body. ponytail: límite por IP, que es lo que da el binding; un
+  // presupuesto global de inferencia necesitaría un contador en KV o DO.
+  if (env.ANALYZE_LIMITER) {
+    const key = request.headers.get("cf-connecting-ip") ?? "sin-ip";
+    const { success } = await env.ANALYZE_LIMITER.limit({ key });
+    if (!success) {
+      return errorResponse(
+        429,
+        { status: "rate_limited", query: "", window: "24h", fetchedAt },
+        "RATE_LIMITED",
+        "Demasiados análisis desde tu conexión. Espera un minuto y vuelve a intentarlo.",
+      );
+    }
+  }
+
   let input: AnalyzeRequest;
   try {
     input = parseRequest(await request.json());

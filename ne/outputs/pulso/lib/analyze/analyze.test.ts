@@ -226,3 +226,34 @@ void test("acepta la salida estructurada de Workers AI, que llega como objeto", 
   assert.equal(body.status, "ok");
   assert.equal(body.analysis?.groups.length, 2);
 });
+
+void test("el limitador corta antes de gastar una inferencia", async () => {
+  let blueskyCalls = 0;
+  const request = new Request("https://pulso.test/api/analyze", {
+    method: "POST",
+    headers: { "cf-connecting-ip": "203.0.113.7" },
+    body: JSON.stringify({ url: "https://bsky.app/search?q=clima" }),
+  });
+  const keys: string[] = [];
+  const env: AnalyzeEnv = {
+    ANALYZE_LIMITER: {
+      limit: async ({ key }) => {
+        keys.push(key);
+        return { success: false };
+      },
+    },
+  };
+  const response = await handleAnalyzeRequest(request, env, {
+    fetchImpl: (input) => {
+      blueskyCalls += 1;
+      return blueskyStub(6)(input);
+    },
+  });
+  const body = (await response.json()) as AnalyzeResponse;
+
+  assert.equal(response.status, 429);
+  assert.equal(body.status, "rate_limited");
+  assert.equal(body.error?.code, "RATE_LIMITED");
+  assert.deepEqual(keys, ["203.0.113.7"]);
+  assert.equal(blueskyCalls, 0);
+});

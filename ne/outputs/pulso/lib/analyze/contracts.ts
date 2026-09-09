@@ -10,7 +10,8 @@ export type AnalysisStatus =
   | "config_required"
   | "insufficient_data"
   | "upstream_error"
-  | "invalid_request";
+  | "invalid_request"
+  | "rate_limited";
 
 export interface PostPreview {
   id: number;
@@ -63,8 +64,14 @@ export interface AiBinding {
   run(model: string, input: unknown): Promise<unknown>;
 }
 
+/** Binding nativo de rate limiting de Cloudflare. */
+export interface RateLimiter {
+  limit(options: { key: string }): Promise<{ success: boolean }>;
+}
+
 export interface AnalyzeEnv {
   AI?: AiBinding;
+  ANALYZE_LIMITER?: RateLimiter;
   AI_MODEL?: string;
   CLOUDFLARE_ACCOUNT_ID?: string;
   CLOUDFLARE_API_TOKEN?: string;

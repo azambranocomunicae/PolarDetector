@@ -17,6 +17,20 @@ Las credenciales son exclusivamente del servidor. Para el runtime local de Cloud
 
 Cloudflare documenta la creación de un token acotado a Workers AI en [REST API](https://developers.cloudflare.com/workers-ai/get-started/rest-api/). No se necesita permiso para administrar dominios, DNS ni los demás servicios de la cuenta.
 
+## Despliegue en Cloudflare
+
+```sh
+npx wrangler login   # o un token con permiso "Edit Cloudflare Workers"
+npm run deploy       # construye y despliega como "polardetector"
+```
+
+Queda publicado en `polardetector.<subdominio>.workers.dev`, accesible desde cualquier sitio.
+
+- **Cuidado con el token de `.env`.** Está acotado a Workers AI y wrangler lee `CLOUDFLARE_API_TOKEN` del entorno: si está exportado, el despliegue falla por permisos. Usa `wrangler login` o genera un token aparte para desplegar.
+- **Sin secretos en el Worker.** La configuración declara el binding `ai` al construir, y `ai.ts` prefiere `env.AI.run` sobre la API REST, así que en producción no hace falta ninguna credencial. El binding solo se declara en `build`: en desarrollo su proxy remoto exige un token con permisos de Workers y aborta el servidor, por lo que en local se usa la ruta REST con `.dev.vars`. Si el binding fallara en producción, quita la línea `ai` de `vite.config.ts` y guarda los dos valores con `wrangler secret put`.
+- **Límite por IP.** El binding `ratelimits` permite 5 análisis por minuto y IP, comprobado antes de leer el body para no gastar una inferencia. La clave es `cf-connecting-ip`, que Cloudflare reescribe en el borde. No es un presupuesto global: para eso hace falta un contador en KV o en un Durable Object.
+- **Coste por análisis.** Medido en las llamadas reales: 147-196 neuronas y 6-10 s. Con eso, la asignación diaria gratuita da para unas decenas de análisis; comprueba la tuya en el panel de Cloudflare antes de anunciarlo.
+
 ## Cómo está montado
 
 - `app/page.tsx` — landing: formulario, puntuación, distribución de posturas y muestra de posts.

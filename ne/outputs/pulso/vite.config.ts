@@ -15,6 +15,14 @@ const isCodexSeatbeltSandbox = process.env.CODEX_SANDBOX === 'seatbelt';
 const localBindingConfig = {
   main: 'vinext/server/fetch-handler',
   compatibility_flags: ['nodejs_compat'],
+  // Cada análisis es una inferencia de varios segundos; se limita por IP.
+  ratelimits: [
+    {
+      name: 'ANALYZE_LIMITER',
+      namespace_id: '1001',
+      simple: { limit: 5, period: 60 as const },
+    },
+  ],
   d1_databases: d1
     ? [
         {
@@ -34,7 +42,7 @@ const localBindingConfig = {
     : [],
 };
 
-export default defineConfig(async () => {
+export default defineConfig(async ({ command }) => {
   // Keep Wrangler and Miniflare state project-local. These are non-secret tool
   // settings; application environment belongs in ignored `.env*` files.
   process.env.WRANGLER_WRITE_LOGS ??= 'false';
@@ -43,6 +51,13 @@ export default defineConfig(async () => {
 
   // Wrangler snapshots its log path while the Cloudflare plugin is imported.
   const { cloudflare } = await import('@cloudflare/vite-plugin');
+
+  // El binding de Workers AI solo se declara al construir: en desarrollo su
+  // proxy remoto exige un token con permisos de Workers y aborta el servidor,
+  // mientras que la ruta REST funciona con el token acotado a Workers AI.
+  const bindings = command === 'build'
+    ? { ...localBindingConfig, ai: { binding: 'AI' } }
+    : localBindingConfig;
 
   return {
     css: { postcss: { plugins: [tailwindcss()] } },
@@ -54,7 +69,7 @@ export default defineConfig(async () => {
       sites(),
       cloudflare({
         viteEnvironment: { name: 'rsc', childEnvironments: ['ssr'] },
-        config: localBindingConfig,
+        config: bindings,
       }),
     ],
   };

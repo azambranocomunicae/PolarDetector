@@ -9,6 +9,7 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "wrangler dev --config dist/server/wrangler.json",
+    "deploy": "vinext build && npx @vinext/cloudflare deploy --skip-build --name polardetector",
     "test": "node --experimental-strip-types --test lib/analyze/*.test.ts",
     "lint": "oxlint",
     "format": "oxfmt"
