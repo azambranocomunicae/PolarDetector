@@ -5,7 +5,7 @@ import { ArrowUpRight, ArrowRight, LoaderCircle, MessageCircle, Repeat2, Heart, 
 type Post = {id:number;url?:string;uri:string;source:string;rank:number;weight:number;author:{handle:string;displayName?:string};text:string;createdAt:string;metrics:{likes:number;reposts:number;replies:number;quotes:number};groupId?:string};
 type Result = {status:string;query:string;window:string;fetchedAt:string;posts:Post[];warnings:string[];error?:{message:string};analysis:null|{score:number|null;level:string;groups:{id:string;label:string;description:string;share:number;postCount:number}[];coverage:number;unknownShare:number;classifiedPosts:number;totalPosts:number;confidence:number;explanation:string}};
 const percent=(n:number)=>`${Math.round(n*100)} %`;
-const barWidth=(n:number)=>`${Math.max(0,Math.min(100,n*100))}%`;
+const barWidth=(n:number)=>`${Math.round(n*100)}%`;
 const colors=['#0085ff','#ef8a38','#32a89c','#ae70d4','#df627a','#8594a7'];
 export default function Home(){
  const [url,setUrl]=useState(''); const [window,setWindow]=useState('24h'); const [busy,setBusy]=useState(false); const [result,setResult]=useState<Result|null>(null); const [error,setError]=useState('');
