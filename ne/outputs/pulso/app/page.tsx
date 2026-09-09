@@ -5,8 +5,7 @@ import { ArrowUpRight, ArrowRight, LoaderCircle, MessageCircle, Repeat2, Heart, 
 type Post = {id:number;url?:string;uri:string;source:string;rank:number;weight:number;author:{handle:string;displayName?:string};text:string;createdAt:string;metrics:{likes:number;reposts:number;replies:number;quotes:number};groupId?:string};
 type Result = {status:string;query:string;window:string;fetchedAt:string;posts:Post[];warnings:string[];error?:{message:string};analysis:null|{score:number|null;level:string;groups:{id:string;label:string;description:string;share:number;postCount:number}[];coverage:number;unknownShare:number;classifiedPosts:number;totalPosts:number;confidence:number;explanation:string}};
 const percent=(n:number)=>`${Math.round(n*100)} %`;
-const barWidth=(n:number)=>`${Math.max(0,Math.min(100,n*100))}%`;
-const colors=['#2459eb','#ef8a38','#32a89c','#ae70d4','#df627a','#8594a7'];
+const colors=['#0085ff','#ef8a38','#32a89c','#ae70d4','#df627a','#8594a7'];
 export default function Home(){
  const [url,setUrl]=useState(''); const [window,setWindow]=useState('24h'); const [busy,setBusy]=useState(false); const [result,setResult]=useState<Result|null>(null); const [error,setError]=useState('');
  async function analyze(e:FormEvent){e.preventDefault();setBusy(true);setError('');setResult(null);try{const response=await fetch('/api/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url,window}),signal:AbortSignal.timeout(120000)});const data=await response.json() as Result;if(Array.isArray(data.posts)){setResult(data);if(data.error)setError(data.error.message);}else{setError(data.error?.message||'No se pudo completar el análisis. Inténtalo de nuevo.');}}catch{setError('No se pudo completar la conexión. Vuelve a intentarlo en un momento.');}finally{setBusy(false);}}
