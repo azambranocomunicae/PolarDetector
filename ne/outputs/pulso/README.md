@@ -20,13 +20,13 @@ Cloudflare documenta la creación de un token acotado a Workers AI en [REST API]
 ## Despliegue en Cloudflare
 
 ```sh
-npx wrangler login   # o un token con permiso "Edit Cloudflare Workers"
-npm run deploy       # construye y despliega como "polardetector"
+cd ~ && npx wrangler login   # desde fuera del proyecto: ver la nota de abajo
+cd -; npm run deploy         # construye y despliega como "polardetector"
 ```
 
 Queda publicado en `polardetector.<subdominio>.workers.dev`, accesible desde cualquier sitio.
 
-- **Cuidado con el token de `.env`.** Está acotado a Workers AI y wrangler lee `CLOUDFLARE_API_TOKEN` del entorno: si está exportado, el despliegue falla por permisos. Usa `wrangler login` o genera un token aparte para desplegar.
+- **Cuidado con el token de `.env`.** Está acotado a Workers AI y no tiene permisos de Workers (403 en `workers/scripts`). Wrangler 4 carga el `.env` del directorio por su cuenta, así que en el proyecto se autentica con ese token y falla; `wrangler login` incluso se niega a arrancar con un token presente. Por eso el login se lanza desde fuera del proyecto y `npm run deploy` pasa `--env-file /dev/null`, que hace que wrangler ignore ese `.env` y use las credenciales OAuth.
 - **Sin secretos en el Worker.** La configuración declara el binding `ai` al construir, y `ai.ts` prefiere `env.AI.run` sobre la API REST, así que en producción no hace falta ninguna credencial. El binding solo se declara en `build`: en desarrollo su proxy remoto exige un token con permisos de Workers y aborta el servidor, por lo que en local se usa la ruta REST con `.dev.vars`. Si el binding fallara en producción, quita la línea `ai` de `vite.config.ts` y guarda los dos valores con `wrangler secret put`.
 - **Límite por IP.** El binding `ratelimits` permite 5 análisis por minuto y IP, comprobado antes de leer el body para no gastar una inferencia. La clave es `cf-connecting-ip`, que Cloudflare reescribe en el borde. No es un presupuesto global: para eso hace falta un contador en KV o en un Durable Object.
 - **Coste por análisis.** Medido en las llamadas reales: 147-196 neuronas y 6-10 s. Con eso, la asignación diaria gratuita da para unas decenas de análisis; comprueba la tuya en el panel de Cloudflare antes de anunciarlo.
