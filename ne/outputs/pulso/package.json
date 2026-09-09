@@ -9,7 +9,7 @@
     "dev": "vinext dev",
     "build": "vinext build",
     "start": "wrangler dev --config dist/server/wrangler.json",
-    "deploy": "vinext build && wrangler deploy --config dist/server/wrangler.json --name polardetector --env-file /dev/null",
+    "deploy": "tsc --noEmit && vinext build && wrangler deploy --config dist/server/wrangler.json --name polardetector --env-file /dev/null",
     "test": "node --experimental-strip-types --test lib/analyze/*.test.ts",
     "lint": "oxlint",
     "format": "oxfmt"
