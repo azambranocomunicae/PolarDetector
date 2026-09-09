@@ -5,7 +5,12 @@ export interface AnalyzeRequest {
   window?: AnalyzeWindow;
 }
 
-export type AnalysisStatus = "ok" | "config_required" | "insufficient_data" | "upstream_error";
+export type AnalysisStatus =
+  | "ok"
+  | "config_required"
+  | "insufficient_data"
+  | "upstream_error"
+  | "invalid_request";
 
 export interface PostPreview {
   id: number;

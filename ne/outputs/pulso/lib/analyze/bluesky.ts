@@ -4,7 +4,14 @@ import type { ParsedTrendUrl } from "./url.ts";
 
 export type FetchLike = (
   input: string,
-  init?: { method?: string; headers?: Record<string, string>; body?: string; signal?: AbortSignal },
+  init?: {
+    method?: string;
+    headers?: Record<string, string>;
+    body?: string;
+    signal?: AbortSignal;
+    /** Sugerencia de caché de Cloudflare; se ignora fuera de Workers. */
+    cf?: { cacheTtl: number; cacheEverything: boolean };
+  },
 ) => Promise<Response>;
 
 const SEARCH_ENDPOINT = "https://api.bsky.app/xrpc/app.bsky.feed.searchPosts";
@@ -31,8 +38,16 @@ interface SearchResponse {
   posts?: unknown;
 }
 
-interface FeedResponse {
-  feed?: unknown;
+/** El appview público limita las consultas por IP; cachear evita repetir la misma llamada. */
+const GET_OPTIONS = {
+  headers: { accept: "application/json" },
+  cf: { cacheTtl: 120, cacheEverything: true },
+} as const;
+
+function httpMessage(status: number): string {
+  return status === 403 || status === 429
+    ? `Bluesky limitó las consultas (HTTP ${status}). Espera un momento antes de reintentar.`
+    : `Bluesky respondió HTTP ${status}`;
 }
 
 export class BlueskyUpstreamError extends Error {
@@ -199,12 +214,12 @@ async function fetchSearch(
 
   let response: Response;
   try {
-    response = await fetchImpl(url.toString(), { headers: { accept: "application/json" }, signal: AbortSignal.timeout(15_000) });
+    response = await fetchImpl(url.toString(), { ...GET_OPTIONS, signal: AbortSignal.timeout(15_000) });
   } catch (error) {
     throw new BlueskyUpstreamError(`No se pudo consultar Bluesky: ${error instanceof Error ? error.message : "error de red"}`);
   }
   if (!response.ok) {
-    throw new BlueskyUpstreamError(`Bluesky respondió HTTP ${response.status}`);
+    throw new BlueskyUpstreamError(httpMessage(response.status));
   }
 
   let body: unknown;
@@ -250,11 +265,11 @@ async function getJson(
 ): Promise<unknown> {
   let response: Response;
   try {
-    response = await fetchImpl(url, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(15_000) });
+    response = await fetchImpl(url, { ...GET_OPTIONS, signal: AbortSignal.timeout(15_000) });
   } catch (error) {
     throw new BlueskyUpstreamError(`${errorPrefix}: ${error instanceof Error ? error.message : "error de red"}`);
   }
-  if (!response.ok) throw new BlueskyUpstreamError(`${errorPrefix}: HTTP ${response.status}`);
+  if (!response.ok) throw new BlueskyUpstreamError(`${errorPrefix}: ${httpMessage(response.status)}`);
   try {
     return await response.json();
   } catch {
