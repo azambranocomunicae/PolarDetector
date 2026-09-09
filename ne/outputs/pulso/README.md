@@ -1,4 +1,4 @@
-# Pulso · Opiniones en Bluesky
+# Polar Detector · Opiniones en Bluesky
 
 Landing en español para recuperar posts públicos de una tendencia y comparar sus opiniones con Cloudflare Workers AI. Servidor compatible con Cloudflare Workers, construido con el starter de Sites/Vinext.
 
